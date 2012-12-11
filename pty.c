@@ -87,6 +87,7 @@ int getPtyMaster_ptmx(char *ttybuf, int ttybuflen)
 	return -EINVAL;
     }
 
+#if 0 /* not needed, triggers SElinux block */
     /* change the onwership */
     if (grantpt(fd))
     {
@@ -95,6 +96,7 @@ int getPtyMaster_ptmx(char *ttybuf, int ttybuflen)
 	close(fd);
 	return -EINVAL;
     }
+#endif
 
     if (unlockpt(fd))
     {
