@@ -1,7 +1,8 @@
 v1.3.2 (unreleased)
 * Change VENDOR [Paul]
 * Security issues with buffers rhbz#80693 [Paul]
-* abort sooner in read_packet() when pppd returns EBADF [mf]
+* abort sooner in read_packet() when pppd returns EBADF [Matthias Ferdinand]
+* option to give tunneltag to pppd via ipparam (l2gw=<tunneltag>) [Matthias Ferdinand]
 * Support for Kernel mode L2TP [wl500g.googlecode.com]
 * Updated ppp-options.xl2tpd and xl2tpd.conf [Paul]
 * Don't call grantpt(), not required and triggers SElinux block [Paul]

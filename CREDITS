@@ -1,3 +1,16 @@
+
+Paul Wouters <pwouters@redhat.com> has gathered patches in a personal tree
+
+* Various patches, cleanup, SElinux fixes by Paul Wouters <pwouters@redhat.com>
+* kernel mode L2TP by wl500g.googlecode.com
+* Various fixes and tunneltag ipparm extension by Matthias Ferdinand <mf@mferd.de>
+* New options "hello delay", "ctrl retrans max" and "ctrl retrans delay"
+  by Hiroshi KIHIRA 
+
+
+
+Original credits follow:
+
 * Xelerance has forked l2tpd into xl2tpd.
 
 * Michael Richardson <mcr@xelerance.com>, for adding IPsec SAref tracking
