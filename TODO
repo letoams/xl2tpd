@@ -1,3 +1,8 @@
+
+Paul:
+* Remove private md5 function - perhaps link against NSS
+
+
 Critical:
 * Improved performance
 * Rate Adaptive Timeouts
