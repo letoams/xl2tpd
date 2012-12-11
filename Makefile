@@ -62,8 +62,8 @@ OSFLAGS?= -DLINUX -I$(KERNELSRC)/include/
 # are packages seperately (eg kernel-headers on Fedora)
 # Note: 2.6.23+ support still needs some changes in the xl2tpd source
 #
-#OSFLAGS+= -DUSE_KERNEL
-#
+# Kernel mode fixed by sigwall <fionov@gmail.com>
+OSFLAGS+= -DUSE_KERNEL
 #
 # Uncomment the next line for FreeBSD
 #
