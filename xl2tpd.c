@@ -806,20 +806,19 @@ void magic_lac_dial (void *data)
         l2tp_log (LOG_DEBUG, "%s : tunnel not up!  Connecting!\n", __FUNCTION__);
 #endif
         magic_lac_tunnel (lac);
-        if (!lac->t)
-        {
-            if (lac->redial && (lac->rtimeout > 0))
-            {
+        if (!lac->t)
+        {
+          if (lac->redial && (lac->rtimeout > 0))
+          {
 #ifdef DEBUG_MAGIC
-                l2tp_log (LOG_DEBUG, "%s: Will redial in %d seconds\n", 
-                          __FUNCTION__, lac->rtimeout);
+             l2tp_log (LOG_DEBUG, "%s: Will redial in %d seconds\n", 
+                  __FUNCTION__, lac->rtimeout);
 #endif
-                tv.tv_sec = lac->rtimeout;
-                tv.tv_usec = 0;
-                lac->rsched = schedule (tv, magic_lac_dial, lac);
-            }
-        }
-
+             tv.tv_sec = lac->rtimeout;
+             tv.tv_usec = 0;
+             lac->rsched = schedule (tv, magic_lac_dial, lac);
+           }
+        }
         return;
     }
     lac_call (lac->t->ourtid, lac, NULL);
