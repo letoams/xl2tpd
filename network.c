@@ -187,6 +187,8 @@ void control_xmit (void *b)
     struct tunnel *t;
     struct timeval tv;
     int ns;
+    int retrans_max = gconfig.ctrl_retrans_max ? gconfig.ctrl_retrans_max
+	                                           : DEFAULT_MAX_RETRIES;
 
     if (!buf)
     {
@@ -217,7 +219,7 @@ void control_xmit (void *b)
             return;
         }
     }
-    if (buf->retries > DEFAULT_MAX_RETRIES)
+    if (buf->retries > retrans_max)
     {
         /*
            * Too many retries.  Either kill the tunnel, or
@@ -250,7 +252,7 @@ void control_xmit (void *b)
         /*
            * FIXME:  How about adaptive timeouts?
          */
-        tv.tv_sec = 1;
+        tv.tv_sec = gconfig.ctrl_retrans_delay ? gconfig.ctrl_retrans_delay : 1;
         tv.tv_usec = 0;
         schedule (tv, control_xmit, buf);
 #ifdef DEBUG_CONTROL_XMIT

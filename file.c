@@ -48,6 +48,9 @@ int init_config ()
     gconfig.packet_dump = 0;
     gconfig.debug_tunnel = 0;
     gconfig.debug_state = 0;
+    gconfig.hellodelay = 0;
+    gconfig.ctrl_retrans_max = 0;
+    gconfig.ctrl_retrans_delay = 0;
     lnslist = NULL;
     laclist = NULL;
     deflac = (struct lac *) calloc (1, sizeof (struct lac));
@@ -1224,6 +1227,65 @@ int set_rand_source (char *word, char *value, int context, void *item)
     }
 }
 
+int set_hellodelay (char *word, char *value, int context, void *item)
+{
+    switch (context & ~CONTEXT_DEFAULT)
+    {
+    case CONTEXT_GLOBAL:
+#ifdef DEBUG_FILE
+        l2tp_log (LOG_DEBUG, "set_hellodelay: Setting HELLO delay %s\n",
+            value);
+#endif
+        set_int (word, value, &(((struct global *) item)->hellodelay));
+        break;
+    default:
+        snprintf (filerr, sizeof (filerr), "'%s' not valid in this context\n",
+            word);
+        return -1;
+    }
+    return 0;
+}
+
+int set_ctrl_retrans_max (char *word, char *value, int context, void *item)
+{
+    switch (context & ~CONTEXT_DEFAULT)
+    {
+    case CONTEXT_GLOBAL:
+#ifdef DEBUG_FILE
+        l2tp_log (LOG_DEBUG,
+            "set_ctrl_retrans_max: Setting Control packet retrans max %s\n",
+            value);
+#endif
+        set_int (word, value, &(((struct global *) item)->ctrl_retrans_max));
+        break;
+    default:
+        snprintf (filerr, sizeof (filerr), "'%s' not valid in this context\n",
+            word);
+        return -1;
+    }
+    return 0;
+}
+
+int set_ctrl_retrans_delay (char *word, char *value, int context, void *item)
+{
+    switch (context & ~CONTEXT_DEFAULT)
+    {
+    case CONTEXT_GLOBAL:
+#ifdef DEBUG_FILE
+        l2tp_log (LOG_DEBUG,
+            "set_ctrl_retrans_delay: Setting Control packet retrans delay %s\n",
+            value);
+#endif
+        set_int (word, value, &(((struct global *) item)->ctrl_retrans_delay));
+        break;
+    default:
+        snprintf (filerr, sizeof (filerr), "'%s' not valid in this context\n",
+            word);
+        return -1;
+    }
+    return 0;
+}
+
 int parse_config (FILE * f)
 {
     /* Read in the configuration file handed to us */
@@ -1502,5 +1564,8 @@ struct keyword words[] = {
     {"tx bps", &set_speed},
     {"rx bps", &set_speed},
     {"bps", &set_speed},
+    {"hello delay", &set_hellodelay},
+    {"ctrl retrans max", &set_ctrl_retrans_max},
+    {"ctrl retrans delay", &set_ctrl_retrans_delay},
     {NULL, NULL}
 };

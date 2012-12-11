@@ -124,7 +124,7 @@ void hello (void *tun)
     struct buffer *buf;
     struct tunnel *t;
     struct timeval tv;
-    tv.tv_sec = HELLO_DELAY;
+    tv.tv_sec = gconfig.hellodelay ? gconfig.hellodelay : HELLO_DELAY;
     tv.tv_usec = 0;
     t = (struct tunnel *) tun;
     buf = new_outgoing (t);

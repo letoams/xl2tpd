@@ -160,6 +160,9 @@ struct global
     int sarefnum;		/* Value of IPSEC_REFINFO used by kernel
 				 * (we used to pick 22, but 2.6.36+ took that, so now we pick 30)
 				 * Changed in SAref patch in openswan 2.6.36 for linux 2.6.36+ */
+    int hellodelay;             /* HELLO packet interval */
+    int ctrl_retrans_max;       /* Control packet retrans max count */
+    int ctrl_retrans_delay;     /*Control packet retrans delay */
 };
 
 extern struct global gconfig;   /* Global configuration options */
