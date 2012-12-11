@@ -12,7 +12,7 @@ v1.3.2 (unreleased)
    "ctrl retrans delay" [Hiroshi KIHIRA]
 * Fix for http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=680146 
 * Fix usage crasher in xl2tp-control [Jacek Konieczny]
-
+* Add redial in magic_lac_dial(), fix misspelled macro [钱国正]
 
 v1.3.1 (Oct 6, 2011)
 * Suse updated to spec and init files [Shinichi Furuso]
