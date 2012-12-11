@@ -140,7 +140,10 @@ int read_packet (struct buffer *buf, int fd, int convert)
             errors++;
             l2tp_log (LOG_DEBUG, "%s: Error %d (%s)\n", __FUNCTION__, errno,
                  strerror (errno));
-            if (errors > 10)
+
+	    /* mf, 08.06.2004: if pppd dies, read returns EBADF (Bad File
+	     * Descriptor) in that case, don't bother repeating */
+            if (errors > 10 | | errno == EBADF)
             {
                 l2tp_log (LOG_DEBUG,
                      "%s: Too many errors.  Declaring call dead.\n",
