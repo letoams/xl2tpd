@@ -7,6 +7,8 @@ v1.3.2 (unreleased)
 * Don't call grantpt(), not required and triggers SElinux block [Paul]
 * Removed linux/include/linux/if_pppol2tp.h [Paul]
 * packaging: fedora packaging updates for systemd [Paul]
+* Add config option: "hello delay", "ctrl retrans max" and
+   "ctrl retrans delay" [Hiroshi KIHIRA]
 
 v1.3.1 (Oct 6, 2011)
 * Suse updated to spec and init files [Shinichi Furuso]
