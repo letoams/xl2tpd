@@ -1,24 +1,25 @@
 Summary: Layer 2 Tunnelling Protocol Daemon (RFC 2661)
 Name: xl2tpd
-Version: 1.3.1
+Version: 1.3.2
 Release: 1%{?dist}
-License: GPLv2
+License: GPL+
 Url: http://www.xelerance.com/software/xl2tpd/
+#Url: https://download.libreswan.org//xl2tpd/
 Group: System Environment/Daemons
 Source0: http://www.xelerance.com/software/xl2tpd/xl2tpd-%{version}.tar.gz
+#Source0: https://download.libreswan.org/xl2tpd/xl2tpd-%{version}.tar.gz
+Source1: xl2tpd.service
+Source2: tmpfiles-xl2tpd.conf
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires: ppp 
-BuildRequires: kernel-headers => 2.6.23
-%if 0%{?el3}%{?el4}
-BuildRequires: libpcap
-%else
+Requires: ppp >= 2.4.5-18, kernel-modules-extra
+# If you want to authenticate against a Microsoft PDC/Active Directory
+# Requires: samba-winbind
 BuildRequires: libpcap-devel
-%endif
-Obsoletes: l2tpd <= 0.69-0.6.20051030.fc6
-Provides: l2tpd = 0.69-0.6.20051030.fc7
-Requires(post): /sbin/chkconfig
-Requires(preun): /sbin/chkconfig
-Requires(preun): /sbin/service
+BuildRequires: systemd-units
+Requires(post): systemd-sysv
+Requires(post): systemd-units
+Requires(preun): systemd-units
+Requires(postun): systemd-units
 
 %description
 xl2tpd is an implementation of the Layer 2 Tunnelling Protocol (RFC 2661).
@@ -26,13 +27,13 @@ L2TP allows you to tunnel PPP over UDP. Some ISPs use L2TP to tunnel user
 sessions from dial-in servers (modem banks, ADSL DSLAMs) to back-end PPP
 servers. Another important application is Virtual Private Networks where
 the IPsec protocol is used to secure the L2TP connection (L2TP/IPsec,
-RFC 3193). The L2TP/IPsec protocol is mainly used by Windows and
+RFC 3193). The L2TP/IPsec protocol is mainly used by Windows and 
 Mac OS X clients. On Linux, xl2tpd can be used in combination with IPsec
 implementations such as Openswan.
 Example configuration files for such a setup are included in this RPM.
 
 xl2tpd works by opening a pseudo-tty for communicating with pppd.
-It runs completely in userspace but supports kernel mode L2TP.
+It runs completely in userspace.
 
 xl2tpd supports IPsec SA Reference tracking to enable overlapping internak
 NAT'ed IP's by different clients (eg all clients connecting from their
@@ -49,84 +50,195 @@ It was de-facto maintained by Jacco de Leeuw <jacco2@dds.nl> in 2002 and 2003.
 %setup -q
 
 %build
-# Customer test case proved the first make line failed, the second one worked
-# the failing one had incoming l2tp packets, but never got a tunnel up.
-#make DFLAGS="$RPM_OPT_FLAGS -g -DDEBUG_PPPD -DDEBUG_CONTROL -DDEBUG_ENTROPY"
-make DFLAGS="-g -DDEBUG_HELLO -DDEBUG_CLOSE -DDEBUG_FLOW -DDEBUG_PAYLOAD -DDEBUG_CONTROL -DDEBUG_CONTROL_XMIT -DDEBUG_FLOW_MORE -DDEBUG_MAGIC -DDEBUG_ENTROPY -DDEBUG_HIDDEN -DDEBUG_PPPD -DDEBUG_AAA -DDEBUG_FILE -DDEBUG_FLOW -DDEBUG_HELLO -DDEBUG_CLOSE -DDEBUG_ZLB -DDEBUG_AUTH"
+#make DFLAGS="$RPM_OPT_FLAGS -g -DDEBUG_HELLO -DDEBUG_CLOSE -DDEBUG_FLOW -DDEBUG_PAYLOAD -DDEBUG_CONTROL -DDEBUG_CONTROL_XMIT -DDEBUG_FLOW_MORE -DDEBUG_MAGIC -DDEBUG_ENTROPY -DDEBUG_HIDDEN -DDEBUG_PPPD -DDEBUG_AAA -DDEBUG_FILE -DDEBUG_FLOW -DDEBUG_HELLO -DDEBUG_CLOSE -DDEBUG_ZLB -DDEBUG_AUTH"
+make DFLAGS="$RPM_OPT_FLAGS -g "
 
 %install
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} PREFIX=%{_prefix} install
+install -d 0755 %{buildroot}%{_unitdir}
+install -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/xl2tpd.service
+mkdir -p %{buildroot}%{_sysconfdir}/tmpfiles.d/
+install -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/tmpfiles.d/%{name}.conf
+
+
 install -p -D -m644 examples/xl2tpd.conf %{buildroot}%{_sysconfdir}/xl2tpd/xl2tpd.conf
 install -p -D -m644 examples/ppp-options.xl2tpd %{buildroot}%{_sysconfdir}/ppp/options.xl2tpd
 install -p -D -m600 doc/l2tp-secrets.sample %{buildroot}%{_sysconfdir}/xl2tpd/l2tp-secrets
 install -p -D -m600 examples/chapsecrets.sample %{buildroot}%{_sysconfdir}/ppp/chap-secrets.sample
-install -p -D -m755 packaging/fedora/xl2tpd.init %{buildroot}%{_initrddir}/xl2tpd
 install -p -D -m755 -d %{buildroot}%{_localstatedir}/run/xl2tpd
-
 
 %clean
 rm -rf %{buildroot}
 
-%post
-/sbin/chkconfig --add xl2tpd
-# if we migrate from l2tpd to xl2tpd, copy the configs
-if [ -f /etc/l2tpd/l2tpd.conf ]
-then
-	echo "Old /etc/l2tpd configuration found, migrating to /etc/xl2tpd"
-	mv /etc/xl2tpd/xl2tpd.conf /etc/xl2tpd/xl2tpd.conf.rpmsave
-	cat /etc/l2tpd/l2tpd.conf | sed "s/options.l2tpd/options.xl2tpd/" > /etc/xl2tpd/xl2tpd.conf
-	mv /etc/ppp/options.xl2tpd /etc/ppp/options.xl2tpd.rpmsave
-	mv /etc/ppp/options.l2tpd /etc/ppp/options.xl2tpd
-	mv /etc/xl2tpd/l2tp-secrets /etc/xl2tpd/l2tpd-secrets.rpmsave
-	cp -pa /etc/l2tpd/l2tp-secrets /etc/xl2tpd/l2tp-secrets
-	
-fi
-
-
 %preun
 if [ $1 -eq 0 ]; then
-	/sbin/service xl2tpd stop > /dev/null 2>&1
-	/sbin/chkconfig --del xl2tpd
+    # Package removal, not upgrade
+    /bin/systemctl --no-reload disable xl2tpd.service > /dev/null 2>&1 || :
+    /bin/systemctl stop xl2tpd.service > /dev/null 2>&1 || :
 fi
 
 %postun
-if [ $1 -ge 1 ]; then
-  /sbin/service xl2tpd condrestart 2>&1 >/dev/null
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    /bin/systemctl try-restart xl2tpd.service >/dev/null 2>&1 || :
 fi
+
+%triggerun -- xl2td < 1.3.1-3
+# Save the current service runlevel info
+# User must manually run systemd-sysv-convert --apply xl2tpd
+# to migrate them to systemd targets
+/usr/bin/systemd-sysv-convert --save xl2tpd >/dev/null 2>&1 ||:
+# Run these because the SysV package being removed won't do them
+/sbin/chkconfig --del xl2tpd >/dev/null 2>&1 || :
+/bin/systemctl try-restart xl2tpd.service >/dev/null 2>&1 || :
 
 %files
 %defattr(-,root,root)
 %doc BUGS CHANGES CREDITS LICENSE README.* TODO doc/rfc2661.txt 
 %doc doc/README.patents examples/chapsecrets.sample
-%attr(0755,root,root) %{_sbindir}/xl2tpd
-%attr(0755,root,root) %{_sbindir}/xl2tpd-control
-%attr(0755,root,root) %{_bindir}/pfc
+%{_sbindir}/xl2tpd
+%{_sbindir}/xl2tpd-control
+%{_bindir}/pfc
 %{_mandir}/*/*
 %dir %{_sysconfdir}/xl2tpd
 %config(noreplace) %{_sysconfdir}/xl2tpd/*
 %config(noreplace) %{_sysconfdir}/ppp/*
-%attr(0755,root,root)  %{_initrddir}/xl2tpd
 %dir %{_localstatedir}/run/xl2tpd
+%{_unitdir}/%{name}.service
+%config(noreplace) %{_sysconfdir}/tmpfiles.d/%{name}.conf
 %ghost %attr(0600,root,root) %{_localstatedir}/run/xl2tpd/l2tp-control
 
 %changelog
-* Sun Oct 26 2008 Paul Wouters <paul@xelerance.com> 1.2.2-1
-- Updated Suse init scripts and spec file
-- Added pfc for pppd's precompiled-active-filter
+* Tue Dec 11 2012 Paul Wouters <pwouters@redhat.com> - 1.3.2-1
+- Merged in Fedora tree work
 
-* Tue Jun 26 2007 Paul Wouters <paul@xelerance.com> 1.1.11-1
-- Minor changes to spec file to accomodate new README files
+* Thu Jul 19 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-10
+- Updated comments in config files on how to authenticate against
+  a Windows PDC / Active Directory
+
+* Tue Jul 03 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-9
+- Rename non-existing openswan.service to ipsec.service (rhbz#836783)
+- Start after ipsec.service, but do not require it
+
+* Tue Jun 26 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-8
+- The l2tp_ppp kernel module is now in kernel-module-extra
+  (rhbz#832149)
+- Don't insist on openswan, some ISPS use L2TP without IPsec
+- Don't call grantpt(), it's not needed and triggers SElinux
+  block (rhbz#834861)
+
+* Fri Jun 15 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-7
+- Moved modprobe code from daemon to initscript/systemd
+  (SElinux does not allow a daemon to do this, see rhbz#832149)
+
+* Tue Jun 12 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-6
+- Added patch for xl2tpd.conf to improve interop settings
+  (no longer need to say "no encryption" on Windows)
+- Improved patch, more doc fixed (esp. "force userspace" option)
+- don't use old version of if_pppol2tp.h
+
+* Wed Apr 18 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-5
+- Added support for CONFIG_PPPOL2TP by sigwall <fionov@gmail.com>
+- Require current ppp because some old versions lacked pppol2tp.so plugin
+
+* Thu Apr 05 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-4
+- Fix parse error on lines > 80 chars, rhbz#806963
+
+* Tue Feb 28 2012 Paul Wouters <pwouters@redhat.com> - 1.3.1-3
+- Converted to systemd
+- Added -Wunused patch to fix two minor warnings
+
+* Sat Jan 14 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.3.1-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
+* Thu Oct 06 2011 Paul Wouters <paul@xelerance.com> - 1.3.1-1
+- Upgraded to 1.3.1
+- Use ghost for /var/run files
+
+* Sat Jul 23 2011 Paul Wouters <paul@xelerance.com> - 1.3.0-1
+- Upgraded to 1.3.0 with better NetworkManager support
+- Compiled without DEBUG per default to gain more performance
+- Added xl2tpd-control
+
+* Wed Feb 23 2011 Paul Wouters <paul@xelerance.com> - 1.2.8-1
+- Updated to 1.2.8
+- Add ghosting for l2tp pipe (bz#656725)
+
+* Mon Feb 07 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2.7-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Tue Nov 30 2010 Paul Wouters <paul@xelerance.com> - 1.2.7-2
+- fix md5 of init script in sources
+
+* Tue Nov 30 2010 Paul Wouters <paul@xelerance.com> - 1.2.7-1
+- Updated to 1.2.7
+- Added more DEBUG build options to the make command
+- Minor cleanups
+
+* Sat Jan 09 2010 Paul Wouters <paul@xelerance.com> - 1.2.5-2
+- Bump for EVR
+
+* Sat Jan 09 2010 Paul Wouters <paul@xelerance.com> - 1.2.5-1
+- Upgraded to 1.2.5. (fixes interop with two Windows machines behind same NAT)
+- Fix mix space/tab in spec file
+- Added missing keyword Default-Stop
+
+* Mon Jul 27 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2.4-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
+* Sun Mar 08 2009 Paul Wouters <paul@xelerance.com> - 1.2.4-3
+- Bump version for tagging mistake
+
+* Sun Mar 08 2009 Paul Wouters <paul@xelerance.com> - 1.2.4-2
+-Fix initscript for https://bugzilla.redhat.com/show_bug.cgi?id=247100
+
+* Sun Mar 08 2009 Paul Wouters <paul@xelerance.com> - 1.2.4-1
+- Upgraded to 1.2.4
+- Merged spec file with upstream
+
+* Thu Feb 26 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
+
+* Thu Oct  9 2008 Paul Wouters <paul@xelerance.com> - 1.2.0-1
+- Updated to new upstream release
+
+* Sat Sep  6 2008 Tom "spot" Callaway <tcallawa@redhat.com> 1.1.12-3
+- fix license tag
+
+* Tue Feb 19 2008 Fedora Release Engineering <rel-eng@fedoraproject.org> - 1.1.12-2
+- Autorebuild for GCC 4.3
+
+* Fri Oct 26 2007 Paul Wouters <paul@xelerance.com> 1.1.12-1
+- Upgraded to new release upstream
+- Removed l2tpd to xl2tpd migration in post
+
+* Wed Aug 29 2007 Fedora Release Engineering <rel-eng at fedoraproject dot org> - 1.1.11-3
+- Rebuild for selinux ppc32 issue.
+
+* Sat Jul 28 2007 Paul Wouters <paul@xelerance.com> 1.1.11-2
+- Upgraded to 1.1.11
+- Include new split README.*
+
+* Mon Mar 19 2007 Paul Wouters <paul@xelerance.com> 1.1.09-1
+- Upgraded to 1.1.09
+
+* Fri Feb 23 2007 Paul Wouters <paul@xelerance.com> 1.1.08-2
+- Bump for EVR
 
 * Fri Feb 23 2007 Paul Wouters <paul@xelerance.com> 1.1.08-1
 - Upgraded to 1.1.08
 - This works around the ppp-2.4.2-6.4 issue of not dying on SIGTERM
 
-* Mon Feb 19 2007 Paul Wouters <paul@xelerance.com> 1.1.07-2
-- Upgraded to 1.1.07
-- Fixes from Tuomo Soini for pidfile handling with Fedora
-- Fix hardcoded version for Source in spec file.
+* Tue Feb 20 2007 Paul Wouters <paul@xelerance.com> 1.1.07-2
+- Fixed version usage in source macro
 
+* Tue Feb 20 2007 Paul Wouters <paul@xelerance.com> 1.1.07-1
+- Upgraded to 1.1.07
+- Added /var/run/xl2tpd to the spec file so this pacakge
+  owns /var/run/xl2tpd
+ 
 * Thu Dec  7 2006 Paul Wouters <paul@xelerance.com> 1.1.06-5
 - Changed space/tab replacing method
 

@@ -5,6 +5,8 @@ v1.3.2 (unreleased)
 * Support for Kernel mode L2TP [wl500g.googlecode.com]
 * Updated ppp-options.xl2tpd and xl2tpd.conf [Paul]
 * Don't call grantpt(), not required and triggers SElinux block [Paul]
+* Removed linux/include/linux/if_pppol2tp.h [Paul]
+* packaging: fedora packaging updates for systemd [Paul]
 
 v1.3.1 (Oct 6, 2011)
 * Suse updated to spec and init files [Shinichi Furuso]

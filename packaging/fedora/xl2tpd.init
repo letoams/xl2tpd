@@ -39,6 +39,12 @@ RETVAL=0
 
 start() {
 	echo -n "Starting $SERVICE: "
+
+	# Look for the L2TP kernel handler module, load when needed
+	if [ ! -d /sys/module/l2tp_ppp ]; then modprobe l2tp_ppp
+	# if still not found, try legacy one
+	if [ ! -d /sys/module/l2tp_ppp ]; then modprobe pppol2tp
+
 	if [ ! -d /var/run/xl2tpd ]
 	then
 		mkdir /var/run/xl2tpd
