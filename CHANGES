@@ -1,5 +1,9 @@
 v1.3.2 (unreleased)
+* Change VENDOR [Paul]
 * abort sooner in read_packet() when pppd returns EBADF [mf]
+* Support for Kernel mode L2TP [wl500g.googlecode.com]
+* Updated ppp-options.xl2tpd and xl2tpd.conf [Paul]
+* Don't call grantpt(), not required and triggers SElinux block [Paul]
 
 v1.3.1 (Oct 6, 2011)
 * Suse updated to spec and init files [Shinichi Furuso]

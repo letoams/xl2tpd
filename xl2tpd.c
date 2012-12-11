@@ -1545,6 +1545,7 @@ void init (int argc,char *argv[])
     l2tp_log (LOG_INFO, "Forked by Scott Balmos and David Stipp, (C) 2001\n");
     l2tp_log (LOG_INFO, "Inherited by Jeff McAdams, (C) 2002\n");
     l2tp_log (LOG_INFO, "Forked again by Xelerance (www.xelerance.com) (C) 2006\n");
+    l2tp_log (LOG_INFO, "Forked again by The Libreswan Project (www.libreswan.org) (C) 2012\n");
     listenaddr.s_addr = gconfig.listenaddr;
     l2tp_log (LOG_INFO, "Listening on IP address %s, port %d\n",
               inet_ntoa(listenaddr), gconfig.port);

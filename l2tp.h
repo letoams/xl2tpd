@@ -41,8 +41,8 @@ typedef unsigned long long _u64;
 #define CONTROL_PIPE_MESSAGE_SIZE 1024
 
 #define BINARY "xl2tpd"
-#define SERVER_VERSION "xl2tpd-1.3.1"
-#define VENDOR_NAME "xelerance.com"
+#define SERVER_VERSION "xl2tpd-1.3.2"
+#define VENDOR_NAME "libreswan"
 #ifndef PPPD
 #define PPPD		"/usr/sbin/pppd"
 #endif
