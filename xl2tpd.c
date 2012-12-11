@@ -653,9 +653,33 @@ struct tunnel *l2tp_call (char *host, int port, struct lac *lac,
     hp = gethostbyname (host);
     if (!hp)
     {
-        l2tp_log (LOG_WARNING, "Host name lookup failed for %s.\n",
-             host);
-        return NULL;
+        if ( lac->redial ) 
+        {
+            int imax=lac->rmax;
+            if ( lac->rmax == 0 )
+                imax = 1;
+            while ( imax > 0 ) 
+            {
+                hp = gethostbyname ( host );
+                if ( hp )
+                    break;
+                l2tp_log ( LOG_WARNING, "Y: Host name lookup failed for %s. Trying to look again in %d seconds.\n", host, lac->rtimeout );
+                if ( lac->rtimeout > 0 )
+                    sleep ( lac->rtimeout );
+                if ( lac->rmax > 0 )
+                    imax--;
+            }
+            if ( ( imax == 0 ) && ( lac->rmax > 0 ) ) 
+            {
+                l2tp_log ( LOG_WARNING, "Y: Host name lookup failed for %s after %d tries. Lookup stops now.\n", host, lac->rmax );
+                return NULL;
+            }
+        }
+        else 
+        {
+            l2tp_log (LOG_WARNING, "Host name lookup failed for %s.\n", host);
+            return NULL;
+        }
     }
     bcopy (hp->h_addr, &addr.s_addr, hp->h_length);
     /* Force creation of a new tunnel

@@ -1,0 +1,140 @@
+Руководство по
+настройке подключения к провайдеру Internet Beeline(Corbina) в Debian6(GNU/Linux) по протоколу l2tp.
+
+	1. Локальное подключения:   ethernet 100Mb. Настройки по DHCP(локальный IP, маршруты, DNS сервера).
+	2. Подключение к Internet:  по протоколу l2tp через сервер tp.internet.beeline.ru.
+
+1а. "Ловим" маршруты(у меня больше 30):
+	В связи с увлеченностью Beeline технологиями от MS придется подправить dhclient.conf,
+заменяем 
+  option rfc3442-classless-static-routes code 121 = array of unsigned integer 8;
+на
+  option rfc3442-classless-static-routes code 249 = array of unsigned integer 8;
+  далее добавляем в секцию "request" опцию "static-routes", а в директорию "/etc/dhcp/dhclient-exit-hooks.d/" скрипт(назовем его "static_routes"):
+RUN="yes"
+if [ "$RUN" = "yes" ]; then
+        if [ "$new_static_routes" != "" ]; then
+                if [ "$reason" = "BOUND" ] || [ "$reason" = "REBOOT" ]; then
+                        my_static_routes=($new_static_routes)
+
+                        for(( i=0; i < ${#my_static_routes[@]}; i=i+2 )); do
+				/sbin/route add -host "${my_static_routes[$i]}" gw "${my_static_routes[$i+1]}"
+                        done
+                fi
+        fi
+fi
+  В зтом скрипте я делаю допущение, что через опцию "static_routes" выдаются маршруты только к хостам, не к сетям(для Beeline это верно).
+
+  Еще один нюанс - после поднятия интерфейса, в "dhclient.ethX.leases ", у меня остается адрес сервера dhcp недостижимый по протоколу dhcp.
+  Поэтому по истечению времени "renew"(у меня 3 дня) в log начинает сыпаться сообщения о недосягаемости dhcp сервера.
+  Во избежании, добавим опцию: 
+	supersede dhcp-server-identifier 255.255.255.255;
+
+Получаем что-то типа:
+option rfc3442-classless-static-routes code 249 = array of unsigned integer 8;
+supersede dhcp-server-identifier 255.255.255.255;
+request subnet-mask, broadcast-address, time-offset, routers, static-routes,
+	domain-name, domain-name-servers, domain-search, host-name,
+	netbios-name-servers, netbios-scope, interface-mtu,
+	rfc3442-classless-static-routes, ntp-servers;
+
+1б. Подымаем интерфейс. Подправляем маршруты.
+
+  Файл /etc/network/interfaces:
+iface ethX inet dhcp
+    l2tpserv tp.internet.beeline.ru
+    l2tpgw  10.xxx.xxx.xxx  #адрес шлюза - узнается эксперементально.
+
+  Прописываем маршруты к DNS и к tp.internet.beeline.ru.
+  Файл /etc/network/if-up.d/prel2tp: название может быть любое:
+#!/bin/sh
+BINROUTE=/sbin/route
+if [ "x$IF_L2TPSERV" != "x" -a "x$IF_L2TPGW" != "x" ]
+then
+for i in $(grep "^nameserver" /etc/resolv.conf | awk '{print $2}') ; do
+        $BINROUTE add -host $i gw $IF_L2TPGW
+done
+$BINROUTE add -host $IF_L2TPSERV gw $IF_L2TPGW
+fi
+exit 0
+
+2а. openl2tp vs. xl2tpd.
+  openl2tp работает быстрее, ping (меньше и стабильней), но вечерами отваливается и уже после этого не подымается до поздней ночи.
+  еще пару раз при неудачной последовательности запуска вешал kernel. В общем сыроват.
+  xl2tpd(l2tpd) - ужасный код, но легко читается и правится, нагрузка на CPU(с отключенным DEBUG 1-2 %), работает стабильно, при обрывах переподключается самостоятельно,
+  маленький. Мой выбор xl2tpd.
+
+2б. Настройка xl2tpd.
+  В процессе тестирования, мной обнаружены ошибки влияющие на стабильность. Поэтому рекомендую пропатчить xl2tpd.
+  1. http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=611829 или  http://ilyx.ru/xl2tpd/l2tp-offsetpad-error.patch
+  2. Кого раздражает в "syslog" "write_packet: Resource temporarily unavailable(11)". Также, заплатка уменьшает вероятность потери пакета.
+     http://ilyx.ru/xl2tpd/wr_pk-nolog-err11.patch
+Ставим желательно пропатченный xl2tpd. Далее приведу свои файлы конфигураций.
+
+  xl2tpd.conf:
+[global]
+access control = yes
+[lac beeline]
+lns = tp.internet.beeline.ru
+redial = yes
+redial timeout = 20
+pppoptfile = /etc/ppp/options.xl2tpd
+autodial = yes
+flow bit = no
+
+   /etc/ppp/options.xl2tpd:
+asyncmap 0000
+mru 1460
+mtu 1460
+name xxxxxxxx
+noaccomp
+nopcomp
+novj
+novjccomp
+noauth
+nobsdcomp
+nodeflate
+noipx
+noauth
+nomp
+refuse-eap
+# refuse-chap
+refuse-pap
+# refuse-mschap
+# refuse-mschap-v2
+replacedefaultroute
+defaultroute
+ipparam l2tp
+unit 0
+
+   /etc/ppp/options:
+lcp-echo-failure 10
+lcp-echo-adaptive
+lcp-echo-interval 60
+
+демон pppd читает оба файла(options.xl2tpd, options). Не забываем "chap-secrets".
+
+Убираем маршрут к "tp.internet.beeline.ru" после старта "pppd" через созданный туннель(спасибо Corbina(Beeline) за адрес l2tp сервера ,
+ совпадающий с адресом второго конца туннеля).
+
+   /etc/ppp/ip-up.d/delroute:
+#!/bin/sh
+if [ "x$6" = "xl2tp" ]
+then
+route del -host $5 dev $1
+fi
+exit 0
+  
+В iptables, как минимум, нужно правило(если работаем как шлюз):
+  $IPTABLES -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+
+Ну теперь вроде бы все. Прописываем автостарт ethX или ifup ethX, затем "/etc/init.d/xl2tpd start" или автостарт при загрузке.
+Выключение тоже стандартно "/etc/init.d/xl2tpd stop" ifdown ethX.
+
+PS. У меня работает без разрывов сутками(чего и вам желаю), т.к. комп. дома, раза два в неделю выключаю.
+В общем доволен, хотя Beeline, мог бы сделать все по прозрачней, для конечного пользователя. Но видимо 
+не хотят. 
+
+Заплатки, сборку для Debian6 amd64 и оригинал руководства можно скачать -
+http://ilyx.ru/xl2tpd/
+
