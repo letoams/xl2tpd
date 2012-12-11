@@ -1,3 +1,6 @@
+v1.3.2 (unreleased)
+* abort sooner in read_packet() when pppd returns EBADF [mf]
+
 v1.3.1 (Oct 6, 2011)
 * Suse updated to spec and init files [Shinichi Furuso]
 * SAREF: Changed IP_IPSEC_REFINFO to global option "saref refinfo" [Paul]
