@@ -611,8 +611,8 @@ void destroy_tunnel (struct tunnel *t)
         if (t->lac->redial && (t->lac->rtimeout > 0) && !t->lac->rsched &&
             t->lac->active)
         {
-            l2tp_log (LOG_INFO, "Will redial in %d seconds\n",
-                 t->lac->rtimeout);
+            l2tp_log (LOG_INFO, "%s Will redial in %d seconds\n",
+                 __FUNCTION__, t->lac->rtimeout);
             tv.tv_sec = t->lac->rtimeout;
             tv.tv_usec = 0;
             t->lac->rsched = schedule (tv, magic_lac_dial, t->lac);
@@ -781,6 +781,7 @@ struct call *lac_call (int tid, struct lac *lac, struct lns *lns)
 void magic_lac_dial (void *data)
 {
     struct lac *lac;
+    struct timeval tv;
     lac = (struct lac *) data;
     if (!lac)
     {
@@ -801,10 +802,24 @@ void magic_lac_dial (void *data)
     }
     if (!lac->t)
     {
-#ifdef DEGUG_MAGIC
+#ifdef DEBUG_MAGIC
         l2tp_log (LOG_DEBUG, "%s : tunnel not up!  Connecting!\n", __FUNCTION__);
 #endif
         magic_lac_tunnel (lac);
+        if (!lac->t)
+        {
+            if (lac->redial && (lac->rtimeout > 0))
+            {
+#ifdef DEBUG_MAGIC    
+                l2tp_log (LOG_DEBUG, "%s: Will redial in %d seconds\n", 
+                          __FUNCTION__, lac->rtimeout);
+#endif
+                tv.tv_sec = lac->rtimeout;
+                tv.tv_usec = 0;
+                lac->rsched = schedule (tv, magic_lac_dial, lac);
+            }
+        }
+
         return;
     }
     lac_call (lac->t->ourtid, lac, NULL);
