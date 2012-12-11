@@ -811,7 +811,7 @@ void magic_lac_dial (void *data)
       if (lac->redial && (lac->rtimeout > 0))
       {
 #ifdef DEBUG_MAGIC
-        l2tp_log (LOG_DEBUG, "%s: Will redial in %d seconds\n", 
+        l2tp_log (LOG_DEBUG, "%s: Will redial in %d seconds\n",
              __FUNCTION__, lac->rtimeout);
 #endif
         tv.tv_sec = lac->rtimeout;
