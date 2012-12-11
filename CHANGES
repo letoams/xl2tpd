@@ -1,5 +1,6 @@
 v1.3.2 (unreleased)
 * Change VENDOR [Paul]
+* Security issues with buffers rhbz#80693 [Paul]
 * abort sooner in read_packet() when pppd returns EBADF [mf]
 * Support for Kernel mode L2TP [wl500g.googlecode.com]
 * Updated ppp-options.xl2tpd and xl2tpd.conf [Paul]
