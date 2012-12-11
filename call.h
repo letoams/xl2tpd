@@ -71,6 +71,7 @@ struct call
     struct tunnel *container;   /* Tunnel we belong to */
     int fd;                     /* File descriptor for pty */
     struct termios *oldptyconf;
+    char ptyname[6];		/* mf, 08.04.2003: string for ptyname */
     int die;
     int nego;                   /* Show negotiation? */
     int pppd;                   /* PID of pppd */

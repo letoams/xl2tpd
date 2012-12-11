@@ -95,6 +95,8 @@ struct lns
     int proxyarp;               /* Use proxy-arp? */
     int proxyauth;              /* Allow proxy authentication? */
     int debug;                  /* Debug PPP? */
+    char ipparam[STRLEN];	/* mf, 08.04.2003: ipparam to provide for pppd */
+    int  ipparamtunneltag;	/* mf, 08.04.2003: provide tunneltag to pppd via ipparam? */
     char pppoptfile[STRLEN];    /* File containing PPP options */
     struct tunnel *t;           /* Tunnel of this, if it's ready */
 };

@@ -63,5 +63,7 @@ extern void handle_special (struct buffer *, struct call *, _u16);
 extern void hello (void *);
 extern void send_zlb (void *);
 extern void dethrottle (void *);
+char *get_tunneltag (struct tunnel *t);
+
 
 #endif

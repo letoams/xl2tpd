@@ -172,6 +172,8 @@ struct tunnel
     struct call *self;
     struct lns *lns;            /* LNS that owns us */
     struct lac *lac;            /* LAC that owns us */
+    char *tunneltag;           /* mf, 03.04.2003: string representing tunnel: peer a.b.c.d:p,
+				  ltunnelid num, rtunnelid num; valid only after completing connection! */
 };
 
 struct tunnel_list

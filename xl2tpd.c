@@ -149,6 +149,12 @@ void show_status (void)
                      cnt, c->ourcid,
                      c->cid, c->serno, c->data_seq_num, c->data_rec_seq_num,
                      c->pLr, c->tx_bytes, c->tx_pkts, c->rx_bytes, c->rx_pkts);
+
+		     /* mf, 27.03.2003: add compact id usable for scripts */
+		     l2tp_log (LOG_WARNING, "      tty=%s, pppd_pid=%d, tag=%d/%d/%u, peer=%s:%d\n",
+		     c->ptyname, c->pppd, c->ourcid, c->cid, c->serno,
+		     IPADDY (t->peer.sin_addr), ntohs (t->peer.sin_port));
+
             c = c->next;
         }
         t = t->next;

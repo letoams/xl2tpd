@@ -158,6 +158,28 @@ void control_zlb (struct buffer *buf, struct tunnel *t, struct call *c)
     udp_xmit (buf, t);
 }
 
+/* mferd, 04.02.2003: make sure challenge storage is malloc'd */
+#define MALLOC_CHALLENGE(data,size)                                    \
+	{ data=malloc(size);                                           \
+		if (!(data))                                                        \
+		{                                                          \
+			log (LOG_WARN, "%s: malloc failed\n", __FUNCTION__);   \
+			set_error (c, VENDOR_ERROR, "malloc failed");          \
+			toss (buf);                                            \
+			return -EINVAL;                                                \
+		}                                                          \
+	}
+
+/* mf, 03.04.2003: provide string representation of tunnel in newly malloc'd memory  */
+char *get_tunneltag (struct tunnel *t)
+{ char tag[128];
+
+	sprintf(tag, "%s:%d/rt=%d/lt=%d",
+		IPADDY (t->peer.sin_addr), ntohs (t->peer.sin_port),
+		t->tid, t->ourtid);
+	return(strdup(tag));
+}
+
 int control_finish (struct tunnel *t, struct call *c)
 {
     /*
@@ -181,6 +203,8 @@ int control_finish (struct tunnel *t, struct call *c)
     int i;
     int pppd_passwdfd[2];            
     int tmptid,tmpcid;
+    char *my_l2tp_hostname;	/* mferd, 30.01.2003: use "hostname" set in l2tpd.conf */
+    char my_ipparam[STRLEN];	/* mf, 08.04.2003: used to construct ipparam arg to pppd */
 
     if (c->msgtype < 0)
     {
@@ -198,8 +222,26 @@ int control_finish (struct tunnel *t, struct call *c)
         /*
          * We need to initiate a connection.
          */
-        if (t->self == c)
-        {
+        if (t->self == c) {
+	/* mferd, 30.01.2003: set my_l2tp_hostname to configured lns resp. lac hostname 
+	 * use network hostname as fallback 
+	 * my_l2tp_hostname=t->lns ? t->lns->hostname : t->lac ? t->lac->hostname : hostname;
+	 */
+	 	my_l2tp_hostname="\0";
+		if (t->lns) {
+			l2tp_log(LOG_WARNING, "my configured LNS hostname: %s\n", t->lns->hostname);
+			my_l2tp_hostname=t->lns->hostname;
+			}
+		else if (t->lac) {
+			l2tp_log(LOG_WARNING, "my configured LAC hostname: %s\n", t->lac->hostname);
+			my_l2tp_hostname=t->lac->hostname;
+		}
+		if (!strlen(my_l2tp_hostname)) {
+			l2tp_log(LOG_WARNING, "no configured LAC/LNS hostname found, using network hostname %s",
+			hostname);
+			my_l2tp_hostname=hostname;
+	  }
+
             if (t->lns)
             {
                 t->ourrws = t->lns->tun_rws;
@@ -377,6 +419,25 @@ int control_finish (struct tunnel *t, struct call *c)
             c->needclose = -1;
             return -EINVAL;
         }
+            /* mferd, 30.01.2003: set my_l2tp_hostname to configured lns resp. lac hostname */
+            /*                    use network hostname as fallback                       */
+            /* my_l2tp_hostname=t->lns ? t->lns->hostname : t->lac ? t->lac->hostname : hostname; */
+            my_l2tp_hostname="\0";
+            if (t->lns)
+              { l2tp_log(LOG_WARNING, "my configured LNS hostname: %s\n", t->lns->hostname);
+                my_l2tp_hostname=t->lns->hostname;
+              }
+            else if (t->lac)
+              { l2tp_log(LOG_WARNING, "my configured LAC hostname: %s\n", t->lac->hostname);
+                my_l2tp_hostname=t->lac->hostname;
+              }
+            if (!strlen(my_l2tp_hostname))
+              { l2tp_log(LOG_WARNING, "no configured LAC/LNS hostname found, using network hostname %s\n",
+                               hostname);
+                my_l2tp_hostname=hostname;
+              }
+
+
         t->ourrws = t->lns->tun_rws;
         t->hbit = t->lns->hbit;
         if (t->fc < 0)
@@ -519,7 +580,7 @@ int control_finish (struct tunnel *t, struct call *c)
          * We shouldn't be requiring a bearer capabilities avp to be present in 
          * SCCRQ and SCCRP as they aren't required
          if (t->bc < 0 ) {
-         if (DEBUG) log(LOG_DEBUG,
+         if (DEBUG) l2tp_log(LOG_DEBUG,
          "%s: Peer did not specify bearer capability.  Closing.\n",__FUNCTION__);
          set_error(c, VENDOR_ERROR, "Specify bearer capability");
          c->needclose = -1;
@@ -737,7 +798,7 @@ int control_finish (struct tunnel *t, struct call *c)
          * isn't a big deal, but it would be nice to have *some* sort of check
          * for it and perhaps just log it and go on.  */
 /*    JLM	if (p->serno<1) {
-			if (DEBUG) log(LOG_DEBUG,
+			if (DEBUG) l2tp_log(LOG_DEBUG,
 			"%s: Peer did not specify serial number when initiating call\n", __FUNCTION__);
 			call_close(p);
 			return -EINVAL;
@@ -981,8 +1042,25 @@ int control_finish (struct tunnel *t, struct call *c)
             po = add_opt (po, "file");
             po = add_opt (po, c->lns->pppoptfile);
         }
-	po = add_opt (po, "ipparam");
-        po = add_opt (po, IPADDY (t->peer.sin_addr));
+
+            /* mf, 08.04.2003: setup ipparam arguments */
+            my_ipparam[0] = '\0';
+            if (c->lns->ipparam[0])
+              { strncat(my_ipparam, c->lns->ipparam, sizeof(my_ipparam)-strlen(my_ipparam)-1); }
+            if (c->lns->ipparamtunneltag)
+              { if (my_ipparam[0])
+                  { strncat(my_ipparam, ",l2gw=", sizeof(my_ipparam)-strlen(my_ipparam)-1); }
+                strncat(my_ipparam, c->container->tunneltag,
+                        sizeof(my_ipparam)-strlen(my_ipparam)-1);
+              }
+
+        po = add_opt (po, "ipparam");
+
+        if (my_ipparam[0])
+            po = add_opt(po, my_ipparam);
+        else
+            po = add_opt (po, IPADDY (t->peer.sin_addr));
+
         start_pppd (c, po);
         opt_destroy (po);
         l2tp_log (LOG_NOTICE,
@@ -1460,7 +1538,9 @@ inline int expand_payload (struct buffer *buf, struct tunnel *t,
     l2tp_log (LOG_DEBUG, "%s: payload, cid = %d, Ns = %d, Nr = %d\n", __FUNCTION__,
          c->cid, new_hdr->Ns, new_hdr->Nr);
 #endif
-    if (new_hdr->Ns != c->data_seq_num)
+    /* if (new_hdr->Ns != c->data_seq_num) */
+    /* mf, 03.04.2003: should be data_rec_seq_num, I suppose...*/
+    if (new_hdr->Ns != c->data_rec_seq_num)
     {
         /* RFC1982-esque comparison of serial numbers */
         if (((new_hdr->Ns < c->data_rec_seq_num) && 

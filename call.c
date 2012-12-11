@@ -339,10 +339,8 @@ void call_close (struct call *c)
             tmp = tmp2;
         }
         l2tp_log (LOG_INFO,
-             "Connection %d closed to %s, port %d (%s)\n", 
-             c->container->tid,
-             IPADDY (c->container->peer.sin_addr),
-             ntohs (c->container->peer.sin_port), c->errormsg);
+             "%s : Connection closed with peer %s, reason: %s\n",
+             __FUNCTION__, c->container->tunneltag, c->errormsg);
     }
     else
     {
@@ -546,6 +544,11 @@ struct call *new_call (struct tunnel *parent)
         tmp->ourcid = 0x6227;
 #endif
     }
+    else
+      {
+       l2tp_log(LOG_DEBUG, "%s: initializing ourcid to 0\n", __FUNCTION__);
+       tmp->ourcid=0;
+      }
     tmp->dialed[0] = 0;
     tmp->dialing[0] = 0;
     tmp->subaddy[0] = 0;
@@ -558,6 +561,7 @@ struct call *new_call (struct tunnel *parent)
 /*	tmp->rws = -1; */
     tmp->fd = -1;
     tmp->oldptyconf = malloc (sizeof (struct termios));
+    tmp->ptyname[0] = '\0';    /* mf, 08.04.2003: no name for pty yet */
     tmp->pnu = 0;
     tmp->cnu = 0;
     tmp->needclose = 0;

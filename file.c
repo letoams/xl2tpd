@@ -123,6 +123,8 @@ struct lns *new_lns ()
     tmp->challenge = 0;
     tmp->debug = 0;
     tmp->pppoptfile[0] = 0;
+    tmp->ipparam[0] = '\0';
+    tmp->ipparamtunneltag = 0;
     tmp->t = NULL;
     return tmp;
 }
@@ -602,6 +604,41 @@ int set_debug (char *word, char *value, int context, void *item)
         break;
     case CONTEXT_LNS:
         if (set_boolean (word, value, &(((struct lns *) item)->debug)))
+            return -1;
+        break;
+    default:
+        snprintf (filerr, sizeof (filerr), "'%s' not valid in this context\n",
+                  word);
+        return -1;
+    }
+    return 0;
+}
+
+/* mf, 08.04.2003: option to give tunneltag to pppd via ipparam (l2gw=<tunneltag>) */
+int set_ipparamtunneltag(char *word, char *value, int context, void *item)
+{
+    switch (context & ~CONTEXT_DEFAULT)
+    {
+    case CONTEXT_LNS:
+        if (set_boolean (word, value, &(((struct lns *) item)->ipparamtunneltag)))
+            return -1;
+        break;
+    default:
+        snprintf (filerr, sizeof (filerr), "'%s' not valid in this context\n",
+                  word);
+        return -1;
+    }
+    return 0;
+}
+
+/* mf, 08.04.2003: configure static ipparam argument for pppd */
+int set_ipparam(char *word, char *value, int context, void *item)
+{
+    struct lns *n = (struct lns *) item;
+    switch (context & ~CONTEXT_DEFAULT)
+    {
+    case CONTEXT_LNS:
+        if (set_string (word, value, n->ipparam, sizeof (n->ipparam)))
             return -1;
         break;
     default:
@@ -1556,6 +1593,8 @@ struct keyword words[] = {
     {"name", &set_authname},
     {"hostname", &set_hostname},
     {"ppp debug", &set_debug},
+    {"ipparam_tunneltag", &set_ipparamtunneltag},/* mf, 08.04.2003: provide tunneltag to pppd in ipparam? */
+    {"ipparam", &set_ipparam},                 /* mf, 08.04.2003: set ipparam arg to pppd */
     {"pppoptfile", &set_pppoptfile},
     {"call rws", &set_rws},
     {"tunnel rws", &set_rws},
