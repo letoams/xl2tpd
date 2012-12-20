@@ -122,6 +122,7 @@ struct lns *new_lns ()
     tmp->proxyauth = 0;
     tmp->challenge = 0;
     tmp->debug = 0;
+    tmp->pass_peer = 0;
     tmp->pppoptfile[0] = 0;
     tmp->ipparam[0] = '\0';
     tmp->ipparamtunneltag = 0;
@@ -167,6 +168,7 @@ struct lac *new_lac ()
     tmp->rtimeout = 30;
     tmp->active = 0;
     tmp->debug = 0;
+    tmp->pass_peer = 0;
     tmp->pppoptfile[0] = 0;
     tmp->defaultroute = 0;
     return tmp;
@@ -614,6 +616,7 @@ int set_debug (char *word, char *value, int context, void *item)
     return 0;
 }
 
+<<<<<<< HEAD
 /* mf, 08.04.2003: option to give tunneltag to pppd via ipparam (l2gw=<tunneltag>) */
 int set_ipparamtunneltag(char *word, char *value, int context, void *item)
 {
@@ -639,6 +642,26 @@ int set_ipparam(char *word, char *value, int context, void *item)
     {
     case CONTEXT_LNS:
         if (set_string (word, value, n->ipparam, sizeof (n->ipparam)))
+            return -1;
+        break;
+    default:
+        snprintf (filerr, sizeof (filerr), "'%s' not valid in this context\n",
+                  word);
+        return -1;
+    }
+    return 0;
+}
+
+int set_pass_peer (char *word, char *value, int context, void *item)
+{
+    switch (context & ~CONTEXT_DEFAULT)
+    {
+    case CONTEXT_LAC:
+        if (set_boolean (word, value, &(((struct lac *) item)->pass_peer)))
+            return -1;
+        break;
+    case CONTEXT_LNS:
+        if (set_boolean (word, value, &(((struct lns *) item)->pass_peer)))
             return -1;
         break;
     default:
@@ -1595,6 +1618,7 @@ struct keyword words[] = {
     {"ppp debug", &set_debug},
     {"ipparam_tunneltag", &set_ipparamtunneltag},/* mf, 08.04.2003: provide tunneltag to pppd in ipparam? */
     {"ipparam", &set_ipparam},                 /* mf, 08.04.2003: set ipparam arg to pppd */
+    {"pass peer", &set_pass_peer},
     {"pppoptfile", &set_pppoptfile},
     {"call rws", &set_rws},
     {"tunnel rws", &set_rws},

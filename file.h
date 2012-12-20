@@ -97,6 +97,7 @@ struct lns
     int debug;                  /* Debug PPP? */
     char ipparam[STRLEN];	/* mf, 08.04.2003: ipparam to provide for pppd */
     int  ipparamtunneltag;	/* mf, 08.04.2003: provide tunneltag to pppd via ipparam? */
+    int pass_peer;              /* Pass peer IP to pppd as ipparam? */
     char pppoptfile[STRLEN];    /* File containing PPP options */
     struct tunnel *t;           /* Tunnel of this, if it's ready */
 };
@@ -134,6 +135,7 @@ struct lac
     int rmax;                   /* Maximum # of consecutive redials */
     int rtries;                 /* # of tries so far */
     int rtimeout;               /* Redial every this many # of seconds */
+    int pass_peer;              /* Pass peer IP to pppd as ipparam? */
     char pppoptfile[STRLEN];    /* File containing PPP options */
     int debug;
     struct tunnel *t;           /* Our tunnel */

@@ -967,8 +967,11 @@ int control_finish (struct tunnel *t, struct call *c)
                 po = add_opt (po, c->lac->pppoptfile);
             }
         };
-	po = add_opt (po, "ipparam");
-        po = add_opt (po, IPADDY (t->peer.sin_addr));
+        if (c->lac->pass_peer)
+        {
+            po = add_opt (po, "ipparam");
+            po = add_opt (po, IPADDY (t->peer.sin_addr));
+        }
         start_pppd (c, po);
         opt_destroy (po);
         if (c->lac)
@@ -1044,6 +1047,8 @@ int control_finish (struct tunnel *t, struct call *c)
             po = add_opt (po, c->lns->pppoptfile);
         }
 
+        if (c->lns->pass_peer)
+        {
             /* mf, 08.04.2003: setup ipparam arguments */
             my_ipparam[0] = '\0';
             if (c->lns->ipparam[0])
@@ -1055,12 +1060,9 @@ int control_finish (struct tunnel *t, struct call *c)
                         sizeof(my_ipparam)-strlen(my_ipparam)-1);
               }
 
-        po = add_opt (po, "ipparam");
-
-        if (my_ipparam[0])
-            po = add_opt(po, my_ipparam);
-        else
+            po = add_opt (po, "ipparam");
             po = add_opt (po, IPADDY (t->peer.sin_addr));
+        }
 
         start_pppd (c, po);
         opt_destroy (po);
@@ -1120,8 +1122,11 @@ int control_finish (struct tunnel *t, struct call *c)
                 po = add_opt (po, c->lac->pppoptfile);
             }
         };
-	po = add_opt (po, "ipparam");
-        po = add_opt (po, IPADDY (t->peer.sin_addr));
+        if (c->lac->pass_peer)
+        {
+            po = add_opt (po, "ipparam");
+            po = add_opt (po, IPADDY (t->peer.sin_addr));
+        }
         start_pppd (c, po);
 
         /*  jz: just show some information */
