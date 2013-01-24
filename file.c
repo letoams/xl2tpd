@@ -616,7 +616,6 @@ int set_debug (char *word, char *value, int context, void *item)
     return 0;
 }
 
-<<<<<<< HEAD
 /* mf, 08.04.2003: option to give tunneltag to pppd via ipparam (l2gw=<tunneltag>) */
 int set_ipparamtunneltag(char *word, char *value, int context, void *item)
 {
